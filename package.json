@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "homepage": "https:MicahAC.github.io/schoolylp",
   "keywords": [],
   "author": "",
   "license": "ISC",
