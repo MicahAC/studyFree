@@ -11,6 +11,9 @@ let incorrectCount = 0;
 
 export default function PracticeMenu() {
 
+	const [incorrectDisplay,setIncorrect] = useState(0);
+	const [correctDisplay,setCorrect] = useState(0);
+
 	const savedLists = Cookies.get();
 	const param = useParams()["set"];
 	const currentList = savedLists["list:" + param];
@@ -23,75 +26,102 @@ export default function PracticeMenu() {
 
 	function shuffleArray(array) {
 		for (let i = array.length - 1; i > 0; i--) {
-		  const j = Math.floor(Math.random() * (i + 1));
-		  [array[i], array[j]] = [array[j], array[i]];
+			const j = Math.floor(Math.random() * (i + 1));
+			[array[i], array[j]] = [array[j], array[i]];
 		}
 		return array;
 	}
-	
+	function shuffleAnswers(answers, answerIndex) {
+		const correctAnswer = `${answers[answerIndex]}`
+		answers[answerIndex] = true
+		answers = shuffleArray(answers)
+		answers.forEach((answer, index)=>{
+			if(answer) {
+				answerIndex = index
+				answers[index] = correctAnswer
+			}
+		})
+		return [answers, answerIndex]
+	}
+
 	function correct() {
 		setTitle("Correct")
 		correctCount++;
-		if(questionNum == questions.length-1) {
+		setCorrect(correctCount)
+		if (questionNum == questions.length - 1) {
 			questionNum = 0;
-			setDebug("Shuffle")
 			questions = shuffleArray(questions)
+			questions.forEach(question=>{
+				let answers = question.answers
+				let answerIndex;
+				const correctAnswer = `${answers[question.answerIndex]}`
+				answers[question.answerIndex] = true
+				answers = shuffleArray(answers)
+				answers.forEach((x,index)=>{
+					if(x === true) {
+						answers[index] = correctAnswer
+						answerIndex = index
+					}
+				})
+				question.answerIndex = answerIndex
+			})
 		}
 		else {
-			questionNum+=1;
+			questionNum += 1;
 			setDebug(questionNum)
 		}
-		
-		
-		setTimeout(()=>{
+
+
+		setTimeout(() => {
 			setTitle('')
 			setQuestion(questions[questionNum])
-		},500)
+		}, 500)
 	}
 
 	function incorrect() {
 		setTitle(`Incorrect - Answer: ${currentQuestion.answers[currentQuestion.answerIndex]}`)
 		incorrectCount++;
-		if(questionNum == questions.length-1) {
+		setIncorrect(incorrectCount)
+		if (questionNum == questions.length - 1) {
 			questionNum = 0;
 			setDebug(questionNum)
 			questions = shuffleArray(questions)
 		}
 		else {
-			questionNum+=1;
+			questionNum += 1;
 			setDebug(questionNum)
 		}
 
 
-		setTimeout(()=>{
+		setTimeout(() => {
 			setTitle('')
 			setQuestion(questions[questionNum])
-		},2000)
+		}, 2000)
 	}
 
 	if(firstRun)
-	questions = currentList.split(majorDivider).map((x) => {
-		const title = x.split(minorDivider)[0]
-		let answers = x.split(minorDivider)[1]
-		answers = answers.split(qDivider)
-		const correctAnswer = `${answers[0]}`
-		answers[0] = true
-		answers = shuffleArray(answers)
-		let answerIndex;
-		answers.forEach((answer,index)=>{
-			if(answer === true) {
-				answers[index] = correctAnswer
-				answerIndex = index
+		questions = currentList.split(majorDivider).map((x) => {
+			const title = x.split(minorDivider)[0]
+			let answers = x.split(minorDivider)[1]
+			answers = answers.split(qDivider)
+			const correctAnswer = `${answers[0]}`
+			answers[0] = true
+			answers = shuffleArray(answers)
+			let answerIndex;
+			answers.forEach((answer,index)=>{
+				if(answer === true) {
+					answers[index] = correctAnswer
+					answerIndex = index
+				}
+			})
+	
+			return {
+				title,
+				answers,
+				answerIndex
 			}
-		})
-
-		return {
-			title,
-			answers,
-			answerIndex
-		}
-	});
-	if(firstRun) questions = shuffleArray(questions)
+		});
+	if (firstRun) questions = shuffleArray(questions)
 	firstRun = false;
 
 	const [currentQuestion, setQuestion] = useState(questions[questionNum]);
@@ -111,36 +141,37 @@ export default function PracticeMenu() {
 				</nav>
 			</header>
 			<div className="practiceMenuTitle">{param}</div>
-			<ul>
-				<li>1</li>
-				<li>2</li>
+			<ul className="nav-list">
+				<li className="scoreCount">{correctDisplay}</li>
+				<li className="scoreCount red">{incorrectDisplay}</li>
 			</ul>
-			<ul>
-				{}
-				<div className="question-box">
-					<div className="question-text">
-						{questionTitle || currentQuestion.title}
-					</div>
-					<div className="answer-grid">
-						<button className="answer-button" onClick={()=>{
-							if(currentQuestion.answerIndex == 0) correct()
-							else incorrect()
-						}}>{currentQuestion.answers[0]}</button>
-						<button className="answer-button" onClick={()=>{
-							if(currentQuestion.answerIndex == 1) correct()
-							else incorrect()
-						}}>{currentQuestion.answers[1]}</button>
-						<button className="answer-button" onClick={()=>{
-							if(currentQuestion.answerIndex == 2) correct()
-							else incorrect()
-						}}>{currentQuestion.answers[2]}</button>
-						<button className="answer-button" onClick={()=>{
-							if(currentQuestion.answerIndex == 3) correct()
-							else incorrect()
-						}}>{currentQuestion.answers[3]}</button>
-					</div>
+			<div className="question-box">
+				<div className="question-text">
+					{questionTitle || currentQuestion.title}
 				</div>
-			</ul>
+				<div className="answer-grid">
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 0) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[0]}</button>
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 1) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[1]}</button>
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 2) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[2]}</button>
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 3) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[3]}</button>
+				</div>
+			</div>
 		</div>
 	);
 }
