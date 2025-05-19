@@ -23,6 +23,9 @@ export default function Home() {
         <Link to="/list" className="screensize">
           <button className="button-3d grey large-button">Practice</button>
         </Link>
+        <Link to="/importEditor" className="screensize">
+          <button className="button-3d grey large-button">Edit List</button>
+        </Link>
       </main>
     </div>
   );

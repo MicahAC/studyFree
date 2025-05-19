@@ -1,14 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./Home.css";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Cookies from "js-cookie";
+
 export default function List() {
+
   const [userInput, setUserInput] = useState("");
   const [title, setTitle] = useState("Title");
   const [questions, setQuestions] = useState([]); // State for the question list
   const [wrongAnswers, setWrongAnswers] = useState([]);
   const [questionAnswers, setQuestionAnswers] = useState([]);
   const [submitButton, setSubmitButton] = useState("Save");
+  
+  const savedLists = Cookies.get();
+  const param = useParams()["set"];
+
+  useEffect(() => {
+    if (param && savedLists["list:" + param]) {
+      const currentList = savedLists["list:" + param];
+      const majorDivider = "}*&";
+      const minorDivider = "{(#";
+      const qDivider = "(#*";
+      let importedQuestions = currentList.split(majorDivider).map((question) => {
+        const questionParts = question.split(minorDivider);
+        const questionText = questionParts[0];
+        const answerText = questionParts[1].split(qDivider);
+        const wrongAnswers = answerText.slice(1);
+        const correctAnswer = answerText[0];
+        return {
+          question: questionText,
+          correctAnswer: correctAnswer,
+          wrongAnswers: wrongAnswers,
+          answerIndex: 0,
+        };
+      });
+
+      setQuestions(importedQuestions.map(q => q.question));
+      setQuestionAnswers(importedQuestions.map(q => q.correctAnswer));
+      setWrongAnswers(importedQuestions.map(q => q.wrongAnswers));
+      setTitle(param);
+    }
+  }, [param, savedLists]);
+
   const handleInputChange = (event) => {
     setUserInput(event.target.value);
   };
