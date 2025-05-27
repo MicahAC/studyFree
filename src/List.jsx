@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import "./Home.css";
 import { Link, useParams } from "react-router-dom";
 import Cookies from "js-cookie";
-import Question from "./question";
 
 export default function List() {
 
@@ -12,17 +11,33 @@ export default function List() {
   const [wrongAnswers, setWrongAnswers] = useState([]);
   const [questionAnswers, setQuestionAnswers] = useState([]);
   const [submitButton, setSubmitButton] = useState("Save");
-
+  
   const savedLists = Cookies.get();
   const param = useParams()["set"];
 
   useEffect(() => {
-    if (param && savedLists["set:" + param]) {
-      const currentList = JSON.parse(savedLists["set:" + param]);
+    if (param && savedLists["list:" + param]) {
+      const currentList = savedLists["list:" + param];
+      const majorDivider = "}*&";
+      const minorDivider = "{(#";
+      const qDivider = "(#*";
+      let importedQuestions = currentList.split(majorDivider).map((question) => {
+        const questionParts = question.split(minorDivider);
+        const questionText = questionParts[0];
+        const answerText = questionParts[1].split(qDivider);
+        const wrongAnswers = answerText.slice(1);
+        const correctAnswer = answerText[0];
+        return {
+          question: questionText,
+          correctAnswer: correctAnswer,
+          wrongAnswers: wrongAnswers,
+          answerIndex: 0,
+        };
+      });
 
-      setQuestions(currentList.questions.map(q => q.question));
-      setQuestionAnswers(currentList.questions.map(q => q.correctAnswer));
-      setWrongAnswers(currentList.questions.map(q => q.wrongAnswers));
+      setQuestions(importedQuestions.map(q => q.question));
+      setQuestionAnswers(importedQuestions.map(q => q.correctAnswer));
+      setWrongAnswers(importedQuestions.map(q => q.wrongAnswers));
       setTitle(param);
     }
   }, [param, savedLists]);
@@ -30,7 +45,7 @@ export default function List() {
   const handleInputChange = (event) => {
     setUserInput(event.target.value);
   };
-
+  
   const handleAddQuestion = () => {
     if (userInput.trim() !== "") {
       setQuestions([...questions, userInput.trim()]); // Add new question to the list
@@ -73,13 +88,20 @@ export default function List() {
         <button
           className="button-base submitButton"
           onClick={() => {
-            let set = {title: title, questions: []}
+            let savedText = "";
+            const majorDivider = "}*&";
+            const minorDivider = "{(#";
+            const qDivider = "(#*";
             questions.forEach((q, i) => {
-              const question = new Question(q, questionAnswers[i], wrongAnswers[i]);
-              set.questions.push(question);
+              savedText += q + minorDivider;
+              savedText += questionAnswers[i] + qDivider;
+              savedText += wrongAnswers[i][0] + qDivider;
+              savedText += wrongAnswers[i][1] + qDivider;
+              savedText += wrongAnswers[i][2];
+              if (i != questions.length - 1) savedText += majorDivider;
             });
             // navigator.clipboard.writeText(savedText);
-            Cookies.set("set:" + title, JSON.stringify(set));
+            Cookies.set("list:" + title, savedText);
             setSubmitButton("Flashcard set saved");
             setTimeout(() => {
               setSubmitButton("Save");

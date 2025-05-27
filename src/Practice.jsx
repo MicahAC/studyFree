@@ -5,8 +5,9 @@ import { useParams, Link } from "react-router-dom";
 
 export default function Home() {
 	const savedLists = Cookies.get();
+	// const listNames = Object.keys(savedLists).filter(x=>x.startsWith("list:"))
 	const [listNames, setListNames] = useState(
-		Object.keys(savedLists).filter((x) => x.startsWith("set:")),
+		Object.keys(savedLists).filter((x) => x.startsWith("list:")),
 	);
 	return (
 		<div className="app">
@@ -28,10 +29,10 @@ export default function Home() {
 						return (
 							<li>
 								<Link
-									to={`/practice/${x.replace("set:", "")}`}
+									to={`/practice/${x.replace("list:", "")}`}
 								>
 									<button className="setButton">
-										{x.replace("set:", "")}
+										{x.replace("list:", "")}
 									</button>
 								</Link>
 								<button
@@ -40,7 +41,7 @@ export default function Home() {
 										Cookies.remove(x);
 										setListNames(
 											Object.keys(Cookies.get()).filter(
-												(x) => x.startsWith("set:"),
+												(x) => x.startsWith("list:"),
 											),
 										);
 									}}

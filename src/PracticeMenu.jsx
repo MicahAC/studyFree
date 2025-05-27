@@ -1,102 +1,138 @@
 import Cookies from "js-cookie";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import "./Home.css";
-import { useParams } from "react-router-dom";
-import Question from "./question";
+import { useParams, Link } from "react-router-dom";
 
-// Helper to shuffle an array
-function shuffleArray(array) {
-	const arr = [...array];
-	for (let i = arr.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[arr[i], arr[j]] = [arr[j], arr[i]];
-	}
-	return arr;
-}
-
-// Helper to shuffle answers and update answerIndex
-function shuffleAnswers(answers, answerIndex) {
-	const arr = [...answers];
-	const correctAnswer = arr[answerIndex];
-	arr[answerIndex] = true;
-	const shuffled = shuffleArray(arr);
-	let newIndex = shuffled.findIndex(x => x === true);
-	shuffled[newIndex] = correctAnswer;
-	return [shuffled, newIndex];
-}
+let questionNum = 0;
+let questions;
+let firstRun = true;
+let correctCount = 0;
+let incorrectCount = 0;
 
 export default function PracticeMenu() {
-	const param = useParams()["set"];
+
+	const [incorrectDisplay,setIncorrect] = useState(0);
+	const [correctDisplay,setCorrect] = useState(0);
+
 	const savedLists = Cookies.get();
-	const currentList = JSON.parse(savedLists["set:" + param]).questions;
-	const [questionTitle, setTitle] = useState("");
-	const [correctDisplay, setCorrect] = useState(0);
-	const [incorrectDisplay, setIncorrect] = useState(0);
+	const param = useParams()["set"];
+	const currentList = savedLists["list:" + param];
+	const [questionTitle, setTitle] = useState("")
+	const [debugQuestionNum, setDebug] = useState(0)
 
-	const [questions, setQuestions] = useState(() => {
-		return shuffleArray(currentList.map(q => {
-			const [shuffledAnswers, newIndex] = shuffleAnswers(q.answers, q.answerIndex);
-			return {
-				...q,
-				answers: shuffledAnswers,
-				answerIndex: newIndex
-			};
-		}));
-	});
+	const majorDivider = "}*&";
+	const minorDivider = "{(#";
+	const qDivider = "(#*";
 
-	const [questionNum, setQuestionNum] = useState(0);
-
-	const correctCountRef = useRef(0);
-	const incorrectCountRef = useRef(0);
-
-	const currentQuestion = questions[questionNum];
-
-	function nextQuestion(reset = false) {
-		if (reset) {
-			const reshuffled = shuffleArray(questions.map(q => {
-				const [shuffledAnswers, newIndex] = shuffleAnswers(q.answers, q.answerIndex);
-				return {
-					...q,
-					answers: shuffledAnswers,
-					answerIndex: newIndex
-				};
-			}));
-			setQuestions(reshuffled);
-			setQuestionNum(0);
-		} else {
-			setQuestionNum(qn => qn + 1);
+	function shuffleArray(array) {
+		for (let i = array.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[array[i], array[j]] = [array[j], array[i]];
 		}
+		return array;
+	}
+	function shuffleAnswers(answers, answerIndex) {
+		const correctAnswer = `${answers[answerIndex]}`
+		answers[answerIndex] = true
+		answers = shuffleArray(answers)
+		answers.forEach((answer, index)=>{
+			if(answer) {
+				answerIndex = index
+				answers[index] = correctAnswer
+			}
+		})
+		return [answers, answerIndex]
 	}
 
 	function correct() {
-		setTitle("Correct");
-		correctCountRef.current += 1;
-		setCorrect(correctCountRef.current);
-		const isLast = questionNum === questions.length - 1;
+		setTitle("Correct")
+		correctCount++;
+		setCorrect(correctCount)
+		if (questionNum == questions.length - 1) {
+			questionNum = 0;
+			questions = shuffleArray(questions)
+			questions.forEach(question=>{
+				let answers = question.answers
+				let answerIndex;
+				const correctAnswer = `${answers[question.answerIndex]}`
+				answers[question.answerIndex] = true
+				answers = shuffleArray(answers)
+				answers.forEach((x,index)=>{
+					if(x === true) {
+						answers[index] = correctAnswer
+						answerIndex = index
+					}
+				})
+				question.answerIndex = answerIndex
+			})
+		}
+		else {
+			questionNum += 1;
+			setDebug(questionNum)
+		}
+
+
 		setTimeout(() => {
-			setTitle("");
-			nextQuestion(isLast);
-		}, 500);
+			setTitle('')
+			setQuestion(questions[questionNum])
+		}, 500)
 	}
 
 	function incorrect() {
-		setTitle(`Incorrect - Answer: ${currentQuestion.answers[currentQuestion.answerIndex]}`);
-		incorrectCountRef.current += 1;
-		setIncorrect(incorrectCountRef.current);
-		const isLast = questionNum === questions.length - 1;
+		setTitle(`Incorrect - Answer: ${currentQuestion.answers[currentQuestion.answerIndex]}`)
+		incorrectCount++;
+		setIncorrect(incorrectCount)
+		if (questionNum == questions.length - 1) {
+			questionNum = 0;
+			setDebug(questionNum)
+			questions = shuffleArray(questions)
+		}
+		else {
+			questionNum += 1;
+			setDebug(questionNum)
+		}
+
+
 		setTimeout(() => {
-			setTitle("");
-			nextQuestion(isLast);
-		}, 2000);
+			setTitle('')
+			setQuestion(questions[questionNum])
+		}, 2000)
 	}
+
+	if(firstRun)
+		questions = currentList.split(majorDivider).map((x) => {
+			const title = x.split(minorDivider)[0]
+			let answers = x.split(minorDivider)[1]
+			answers = answers.split(qDivider)
+			const correctAnswer = `${answers[0]}`
+			answers[0] = true
+			answers = shuffleArray(answers)
+			let answerIndex;
+			answers.forEach((answer,index)=>{
+				if(answer === true) {
+					answers[index] = correctAnswer
+					answerIndex = index
+				}
+			})
+	
+			return {
+				title,
+				answers,
+				answerIndex
+			}
+		});
+	if (firstRun) questions = shuffleArray(questions)
+	firstRun = false;
+
+	const [currentQuestion, setQuestion] = useState(questions[questionNum]);
 
 	return (
 		<div className="app">
 			<header>
 				<div className="logo"></div>
 				<nav>
-					<ul className="nav-list">
-						<li className="nav-button">
+					<ul class="nav-list">
+						<li class="nav-button">
 							<a href="/">
 								<button className="button-3d grey">Home</button>
 							</a>
@@ -111,22 +147,29 @@ export default function PracticeMenu() {
 			</ul>
 			<div className="question-box">
 				<div className="question-text">
-					{currentQuestion.question}
+					{questionTitle || currentQuestion.title}
 				</div>
 				<div className="answer-grid">
-					{currentQuestion.answers.map((ans, idx) => (
-						<button
-							key={idx}
-							className="answer-button"
-							onClick={() => {
-								if (questionTitle === "Correct" || questionTitle.startsWith("Incorrect")) return;
-								if (currentQuestion.answerIndex === idx) correct();
-								else incorrect();
-							}}
-						>
-							{ans}
-						</button>
-					))}
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 0) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[0]}</button>
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 1) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[1]}</button>
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 2) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[2]}</button>
+					<button className="answer-button" onClick={() => {
+						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
+						if (currentQuestion.answerIndex == 3) correct()
+						else incorrect()
+					}}>{currentQuestion.answers[3]}</button>
 				</div>
 			</div>
 		</div>
