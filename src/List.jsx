@@ -16,21 +16,14 @@ export default function List() {
   const param = useParams()["set"];
 
   useEffect(() => {
-    if (param && savedLists["list:" + param]) {
-      const currentList = savedLists["list:" + param];
-      const majorDivider = "}*&";
-      const minorDivider = "{(#";
-      const qDivider = "(#*";
-      let importedQuestions = currentList.split(majorDivider).map((question) => {
-        const questionParts = question.split(minorDivider);
-        const questionText = questionParts[0];
-        const answerText = questionParts[1].split(qDivider);
-        const wrongAnswers = answerText.slice(1);
-        const correctAnswer = answerText[0];
+    if (param && savedLists["set:" + param]) {
+      const currentList = JSON.parse(savedLists["set:" + param]);
+
+      let importedQuestions = currentList.questionList.map((question) => {
         return {
-          question: questionText,
-          correctAnswer: correctAnswer,
-          wrongAnswers: wrongAnswers,
+          question: question.question,
+          correctAnswer: question.answers[0],
+          wrongAnswers: question.answers.slice(1),
           answerIndex: 0,
         };
       });
@@ -40,7 +33,7 @@ export default function List() {
       setWrongAnswers(importedQuestions.map(q => q.wrongAnswers));
       setTitle(param);
     }
-  }, [param, savedLists]);
+  }, []);
 
   const handleInputChange = (event) => {
     setUserInput(event.target.value);
@@ -88,20 +81,15 @@ export default function List() {
         <button
           className="button-base submitButton"
           onClick={() => {
-            let savedText = "";
-            const majorDivider = "}*&";
-            const minorDivider = "{(#";
-            const qDivider = "(#*";
-            questions.forEach((q, i) => {
-              savedText += q + minorDivider;
-              savedText += questionAnswers[i] + qDivider;
-              savedText += wrongAnswers[i][0] + qDivider;
-              savedText += wrongAnswers[i][1] + qDivider;
-              savedText += wrongAnswers[i][2];
-              if (i != questions.length - 1) savedText += majorDivider;
-            });
-            // navigator.clipboard.writeText(savedText);
-            Cookies.set("list:" + title, savedText);
+            let questionList = []
+            for (let i = 0; i < questions.length; i++) {
+              questionList.push({
+                question: questions[i],
+                answers: [questionAnswers[i], ...wrongAnswers[i]],
+              });
+            }
+            Cookies.set("set:" + title, JSON.stringify({title,questionList}));
+            
             setSubmitButton("Flashcard set saved");
             setTimeout(() => {
               setSubmitButton("Save");

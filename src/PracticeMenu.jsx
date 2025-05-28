@@ -16,7 +16,7 @@ export default function PracticeMenu() {
 
 	const savedLists = Cookies.get();
 	const param = useParams()["set"];
-	const currentList = savedLists["list:" + param];
+	const currentList = savedLists["set:" + param];
 	const [questionTitle, setTitle] = useState("")
 	const [debugQuestionNum, setDebug] = useState(0)
 
@@ -32,16 +32,19 @@ export default function PracticeMenu() {
 		return array;
 	}
 	function shuffleAnswers(answers, answerIndex) {
-		const correctAnswer = `${answers[answerIndex]}`
-		answers[answerIndex] = true
-		answers = shuffleArray(answers)
-		answers.forEach((answer, index)=>{
-			if(answer) {
-				answerIndex = index
-				answers[index] = correctAnswer
-			}
-		})
-		return [answers, answerIndex]
+		const correctAnswer = answers[answerIndex];
+		// Remove the correct answer from the array
+		const wrongAnswers = answers.slice(0, answerIndex).concat(answers.slice(answerIndex + 1));
+		// Shuffle the wrong answers
+		const shuffledWrongAnswers = shuffleArray(wrongAnswers);
+		// Insert the correct answer at a random index
+		const newAnswerIndex = Math.floor(Math.random() * (shuffledWrongAnswers.length + 1));
+		const shuffledAnswers = [
+			...shuffledWrongAnswers.slice(0, newAnswerIndex),
+			correctAnswer,
+			...shuffledWrongAnswers.slice(newAnswerIndex)
+		];
+		return [shuffledAnswers, newAnswerIndex];
 	}
 
 	function correct() {
@@ -99,28 +102,31 @@ export default function PracticeMenu() {
 		}, 2000)
 	}
 
-	if(firstRun)
-		questions = currentList.split(majorDivider).map((x) => {
-			const title = x.split(minorDivider)[0]
-			let answers = x.split(minorDivider)[1]
-			answers = answers.split(qDivider)
-			const correctAnswer = `${answers[0]}`
-			answers[0] = true
-			answers = shuffleArray(answers)
-			let answerIndex;
-			answers.forEach((answer,index)=>{
-				if(answer === true) {
-					answers[index] = correctAnswer
-					answerIndex = index
-				}
-			})
-	
+	if(firstRun) {
+		const currentList = JSON.parse(savedLists["set:" + param]);
+
+		let importedQuestions = currentList.questionList.map((question) => {
 			return {
-				title,
-				answers,
-				answerIndex
-			}
+			question: question.question,
+			correctAnswer: question.answers[0],
+			wrongAnswers: question.answers.slice(1),
+			answerIndex: 0,
+			};
 		});
+
+		questions = importedQuestions.map(q => {
+			const answers = [q.correctAnswer, ...q.wrongAnswers];
+			console.log(answers)
+			const answerIndex = 0; // Assuming the first answer is always correct
+			const [shuffledAnswers, newAnswerIndex] = shuffleAnswers(answers, answerIndex);
+			console.log(shuffledAnswers)
+			return {
+				title: q.question,
+				answers: shuffledAnswers,
+				answerIndex: newAnswerIndex
+			};
+		})
+	}
 	if (firstRun) questions = shuffleArray(questions)
 	firstRun = false;
 
