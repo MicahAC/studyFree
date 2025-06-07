@@ -9,9 +9,10 @@ export default function List() {
   const [title, setTitle] = useState("Title");
   const [questions, setQuestions] = useState([]); // State for the question list
   const [wrongAnswers, setWrongAnswers] = useState([]);
+  const [answerCounts, setAnswerCounts] = useState([])
   const [questionAnswers, setQuestionAnswers] = useState([]);
   const [submitButton, setSubmitButton] = useState("Save");
-  
+
   const savedLists = Cookies.get();
   const param = useParams()["set"];
 
@@ -23,7 +24,8 @@ export default function List() {
         return {
           question: question.question,
           correctAnswer: question.answers[0],
-          wrongAnswers: question.answers.slice(1),
+          wrongAnswers: question?.answers.slice(1),
+          answerCount: question.answerCount || 4,
           answerIndex: 0,
         };
       });
@@ -31,6 +33,7 @@ export default function List() {
       setQuestions(importedQuestions.map(q => q.question));
       setQuestionAnswers(importedQuestions.map(q => q.correctAnswer));
       setWrongAnswers(importedQuestions.map(q => q.wrongAnswers));
+      setAnswerCounts(importedQuestions.map(q => q.answerCount));
       setTitle(param);
     }
   }, []);
@@ -38,11 +41,12 @@ export default function List() {
   const handleInputChange = (event) => {
     setUserInput(event.target.value);
   };
-  
+
   const handleAddQuestion = () => {
     if (userInput.trim() !== "") {
       setQuestions([...questions, userInput.trim()]); // Add new question to the list
       setQuestionAnswers([...questionAnswers, ""]);
+      setAnswerCounts([...answerCounts, 4]); // Default to 4 answers
       setWrongAnswers([...wrongAnswers, ["", "", ""]]);
       setUserInput(""); // Clear the input field
     }
@@ -51,6 +55,7 @@ export default function List() {
   const handleDeleteQuestion = (index) => {
     setQuestions(questions.filter((_, i) => i !== index));
     setQuestionAnswers(questionAnswers.filter((_, i) => i !== index));
+    setAnswerCounts(answerCounts.filter((_, i) => i !== index));
     setWrongAnswers(wrongAnswers.filter((_, i) => i !== index));
   };
 
@@ -86,10 +91,11 @@ export default function List() {
               questionList.push({
                 question: questions[i],
                 answers: [questionAnswers[i], ...wrongAnswers[i]],
+                answerCount: answerCounts[i],
               });
             }
-            Cookies.set("set:" + title, JSON.stringify({title,questionList}));
-            
+            Cookies.set("set:" + title, JSON.stringify({ title, questionList }));
+
             setSubmitButton("Flashcard set saved");
             setTimeout(() => {
               setSubmitButton("Save");
@@ -126,6 +132,18 @@ export default function List() {
             >
               Delete
             </button>
+            <button
+              className="changeQuestionType"
+              onClick={() => {
+                setAnswerCounts((prev) => {
+                  let newCounts = [...prev];
+                  newCounts[index] = newCounts[index] == 4 ? 2 : 4
+                  return newCounts;
+                });
+              }}
+            >
+              {answerCounts[index]} Answer Question
+            </button>
             <div className="input-holder">
               <input
                 className="input green"
@@ -152,33 +170,39 @@ export default function List() {
                   setWrongAnswers(tempAnswers);
                 }}
                 value={wrongAnswers[index][0] || ""}
-              />
-              <input
-                className="input red"
-                onChange={() => {
-                  let a = [];
-                  wrongAnswers.forEach((x) => {
-                    a.push(x);
-                  });
-                  let tempAnswers = a;
-                  tempAnswers[index][1] = event.target.value;
-                  setWrongAnswers(tempAnswers);
-                }}
-                value={wrongAnswers[index][1] || ""}
-              />
-              <input
-                className="input red"
-                onChange={() => {
-                  let a = [];
-                  wrongAnswers.forEach((x) => {
-                    a.push(x);
-                  });
-                  let tempAnswers = a;
-                  tempAnswers[index][2] = event.target.value;
-                  setWrongAnswers(tempAnswers);
-                }}
-                value={wrongAnswers[index][2] || ""}
-              />
+              />{(() => {
+                if (answerCounts[index] == 4) return (
+                  <input
+                    className="input red"
+                    onChange={() => {
+                      let a = [];
+                      wrongAnswers.forEach((x) => {
+                        a.push(x);
+                      });
+                      let tempAnswers = a;
+                      tempAnswers[index][1] = event.target.value;
+                      setWrongAnswers(tempAnswers);
+                    }}
+                    value={wrongAnswers[index][1] || ""}
+                  />)
+              })()}
+
+              {(() => {
+                if (answerCounts[index] == 4) return (
+                  <input
+                    className="input red"
+                    onChange={() => {
+                      let a = [];
+                      wrongAnswers.forEach((x) => {
+                        a.push(x);
+                      });
+                      let tempAnswers = a;
+                      tempAnswers[index][2] = event.target.value;
+                      setWrongAnswers(tempAnswers);
+                    }}
+                    value={wrongAnswers[index][2] || ""}
+                  />)
+              })()}
             </div>
           </li>
         ))}

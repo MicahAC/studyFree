@@ -109,8 +109,9 @@ export default function PracticeMenu() {
 			return {
 			question: question.question,
 			correctAnswer: question.answers[0],
-			wrongAnswers: question.answers.slice(1),
+			wrongAnswers: question.answers.slice(1).filter(x=>!!x),
 			answerIndex: 0,
+			answerCount: question.answerCount || 4 // Default to 4 answers if not specified
 			};
 		});
 
@@ -123,7 +124,8 @@ export default function PracticeMenu() {
 			return {
 				title: q.question,
 				answers: shuffledAnswers,
-				answerIndex: newAnswerIndex
+				answerIndex: newAnswerIndex,
+				answerCount: q.answerCount
 			};
 		})
 	}
@@ -166,16 +168,16 @@ export default function PracticeMenu() {
 						if (currentQuestion.answerIndex == 1) correct()
 						else incorrect()
 					}}>{currentQuestion.answers[1]}</button>
-					<button className="answer-button" onClick={() => {
+					{currentQuestion.answerCount == 4 && (<button className="answer-button" onClick={() => {
 						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
 						if (currentQuestion.answerIndex == 2) correct()
 						else incorrect()
-					}}>{currentQuestion.answers[2]}</button>
-					<button className="answer-button" onClick={() => {
+					}}>{currentQuestion.answers[2]}</button>)}
+					{currentQuestion.answerCount == 4 && (<button className="answer-button" onClick={() => {
 						if(questionTitle == "Correct" || questionTitle.startsWith("Incorrect")) return;
 						if (currentQuestion.answerIndex == 3) correct()
 						else incorrect()
-					}}>{currentQuestion.answers[3]}</button>
+					}}>{currentQuestion.answers[3]}</button>)}
 				</div>
 			</div>
 		</div>
